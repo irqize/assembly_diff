@@ -1,7 +1,10 @@
 .text
     file_name: .asciz "text"
+    int_output_format: .string "File size %d \n"
 .lcomm fd, 1
 .lcomm file_buffer, 1024
+.data
+    len: .quad 0
 
 .equ sys_read, 0
 .equ sys_write, 1
@@ -27,7 +30,13 @@ main:
     movq $file_buffer, %rsi
     movq $1024, %rdx
     syscall 
-  
+    
+    movq %rax, (len)
+    movq $0, %rax
+    movq $int_output_format, %rdi
+    movq (len), %rsi
+    call printf
+    
 
     movq $sys_close, %rax
     movq $fd, %rdi
@@ -47,3 +56,15 @@ end:
     movq $sys_exit, %rax
     movq $0, %rdi
     syscall
+
+
+
+
+loop_lines:
+
+    ret
+
+loop_single_line:
+
+    ret
+    

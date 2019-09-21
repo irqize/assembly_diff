@@ -1,11 +1,17 @@
 .text
     file_name: .asciz "text"
     int_output_format: .string "File size %d \n"
+    string_output_format: .string "%s\n"
+    true_string: .asciz "true"
+    false_string: .asciz "false"
+    number_text: .asciz "2"
 .lcomm fd, 1
 .lcomm file_buffer, 1024
+.lcomm number, 1
 .data
     len: .quad 0
 
+#linux syscalls
 .equ sys_read, 0
 .equ sys_write, 1
 .equ sys_open, 2
@@ -45,10 +51,14 @@ main:
     movq $sys_write, %rax
     movq $1, %rdi
     movq $file_buffer, %rsi
-    movq $1024, %rdx
+    lea 1(%rsi), %rsi
+    movq $1, %rdx
     syscall
 
-
+    mov (%rsi), %al #move thing we compare to 1byte register
+    cmpb %al, (number_text)
+    je print_true
+    jne print_false
     
     movq %rbp, %rsp
     popq %rbp
@@ -68,3 +78,24 @@ loop_single_line:
 
     ret
     
+print_true:
+    pushq %rbp
+    movq %rsp, %rbp
+    movq $0, %rax
+    movq $string_output_format, %rdi
+    movq $true_string, %rsi
+    call printf
+    movq %rbp, %rsp
+    popq %rbp
+    ret
+
+print_false:
+    pushq %rbp
+    movq %rsp, %rbp
+    movq $0, %rax
+    movq $string_output_format, %rdi
+    movq $false_string, %rsi
+    call printf
+    movq %rbp, %rsp
+    popq %rbp
+    ret

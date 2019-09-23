@@ -1,15 +1,31 @@
 .text
-    file_name: .asciz "text2"
-    int_output_format: .string "File size %d \n"
-    string_output_format: .string "\n%s\n"
-    true_string: .asciz "true"
-    false_string: .asciz "false"
-    number_text: .asciz "2"
+    #printf formats
+    printf_string_format_nl: .asciz "%s\n"
+    printf_string_format: .asciz "%s"
+    printf_int_format_nl: .asciz "%i\n"
+
+    #predefined strings
+    line: .asciz "---"
+    file1: .asciz "< "
+    file2: .asciz "> "
+
+
+#reserved space for file descriptor
 .lcomm fd, 1
-.lcomm file_buffer, 1024
-.lcomm number, 1
+.lcomm file1_name_adress, 8
+.lcomm file2_name_adress, 8
+#reserved space for files contents
+.lcomm file1_buffer, 1024
+.lcomm file2_buffer, 1024
+
+
 .data
-    len: .quad 0
+    start_of_current_line_file1: .quad 0
+    start_of_current_line_file2: .quad 0
+    current_possition_file1: .quad 0
+    current_possition_file2: .quad 0
+
+
 
 #linux syscalls
 .equ sys_read, 0
@@ -23,8 +39,20 @@ main:
     pushq %rbp
     movq %rsp, %rbp
 
+    #copy adress of the first one to the variable
+	movq	%rsi, %rax
+    addq    $8, %rax  #first argument is actually the second one because the first one is executable name
+	movq	(%rax), %rax
+	movq	%rax, (file1_name_adress)
+    #copy adress of the second one to the variable
+    movq	%rsi, %rax
+    addq    $16, %rax
+    movq	(%rax), %rax
+	movq	%rax, (file2_name_adress)
+
+    #open and save to memory first file
     movq $sys_open, %rax
-    movq $file_name, %rdi
+    movq (file1_name_adress), %rdi
     movq $0, %rsi
     movq $0777, %rdx
     syscall 
@@ -33,33 +61,51 @@ main:
 
     movq $sys_read, %rax
     movq (fd), %rdi
-    movq $file_buffer, %rsi
+    movq $file1_buffer, %rsi
     movq $1024, %rdx
     syscall 
     
-    movq %rax, (len)
-    movq $0, %rax
-    movq $int_output_format, %rdi
-    movq (len), %rsi
-    call printf
-    
-
     movq $sys_close, %rax
     movq $fd, %rdi
     syscall 
-
-    movq $sys_write, %rax
-    movq $1, %rdi
-    movq $file_buffer, %rsi
-    lea 1(%rsi), %rsi
-    movq $1, %rdx
-    syscall
-
-    mov (%rsi), %al #move thing we compare to 1byte register
-    cmpb %al, (number_text)
-    je print_true
-    jne print_false
+    ####################################
     
+
+    #open and save to memory second file
+    movq $sys_open, %rax
+    movq (file2_name_adress), %rdi
+    movq $0, %rsi
+    movq $0777, %rdx
+    syscall 
+
+    movq %rax, (fd)
+
+    movq $sys_read, %rax
+    movq (fd), %rdi
+    movq $file2_buffer, %rsi
+    movq $1024, %rdx
+    syscall 
+    
+    movq $sys_close, %rax
+    movq $fd, %rdi
+    syscall 
+    ####################################
+
+    movq $file1_buffer, %r13 #r13 registry will store address to currently compared char of file1
+    movq $file2_buffer, %r14 #r14 registry will store address to currently compared char of file2
+
+    movq $0, %r8 #r8 registry will be storing position in file1
+    movq $0, %r9 #r9 registry will be storing position in file2
+
+    movq $0, %r11 #r11 registry will be storing position of current line starting in file1
+    movq $0, %r12 #r12 registry will be storing position of current line starting in file1
+    
+
+loop:
+    jmp compare_line
+after_compare_line:
+
+
     movq %rbp, %rsp
     popq %rbp
 end:
@@ -68,34 +114,77 @@ end:
     syscall
 
 
+compare_line:
+    jmp check_eof
+after_check_eof:
+    movb (%r13), %al
+    movb (%r14), %bl
+
+    incq %r13
+    incq %r14
+    incq %r8
+    incq %r9
+
+    cmpb  %al,  %bl
+    je compare_line
+    jne print_diff_eof ##TO CHANGE
+
+    jmp after_compare_line
+
+check_eof:
+    cmpb $0, (%r13)
+    je check_eof_file2_also
+    jne check_eof_file2_only
+check_eof_file2_only:
+    cmpb $0, (%r14)
+    je print_diff_eof
+    jne after_check_eof
+check_eof_file2_also:
+    cmpb $0, (%r14)
+    je end
+    jne print_diff_eof
 
 
-loop_lines:
+print_diff:
 
-    ret
 
-loop_single_line:
+print_diff_eof:
+    movq %r11, (current_possition_file1)
+    movq %r12, (current_possition_file2)
 
-    ret
-    
-print_true:
-    pushq %rbp
-    movq %rsp, %rbp
-    movq $0, %rax
-    movq $string_output_format, %rdi
-    movq $true_string, %rsi
+    movq $printf_string_format, %rdi
+    movq $file1, %rsi
     call printf
-    movq %rbp, %rsp
-    popq %rbp
-    ret
-
-print_false:
-    pushq %rbp
-    movq %rsp, %rbp
-    movq $0, %rax
-    movq $string_output_format, %rdi
-    movq $false_string, %rsi
+    movq $printf_string_format_nl, %rdi
+    #movq %r13, %rsi
+    movq $file1_buffer, %rsi
+    movq (current_possition_file1), %r11
+    addq %r11, %rsi
     call printf
-    movq %rbp, %rsp
-    popq %rbp
-    ret
+
+    movq $printf_string_format_nl, %rdi
+    movq $line, %rsi
+    call printf
+
+    movq $printf_string_format, %rdi
+    movq $file2, %rsi
+    call printf
+    movq $printf_string_format_nl, %rdi
+    movq $file2_buffer, %rsi
+    movq (current_possition_file1), %r12
+    addq %r12, %rsi
+    call printf
+    jmp end
+
+go_to_end_of_line_file1:
+go_to_end_of_line_file2:
+
+
+
+print_line_file1:
+    #print > 
+    movq $printf_string_format, %rdi
+    movq $file1, %rsi
+    call printf
+    #print line
+end_print_line_file1:

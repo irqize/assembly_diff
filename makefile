@@ -1,6 +1,6 @@
 diff:
 	gcc diff.s -no-pie -g -o diff.out
-	./diff.out
+	./diff.out text1 text2
 
 args:
 	gcc args.s -no-pie -g -o args.out 

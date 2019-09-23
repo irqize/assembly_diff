@@ -12,8 +12,6 @@ main:
     push %rbp
     movq %rsp, %rbp
 
-    push %rsi
-
     #copy adress of the first one to the variable
 	movq	%rsi, %rax
     addq    $8, %rax

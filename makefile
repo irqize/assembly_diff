@@ -1,7 +1,11 @@
-diff: diff.out
+diff:
 	gcc diff.s -no-pie -g -o diff.out
 	./diff.out
 
-args: args.out
+args:
 	gcc args.s -no-pie -g -o args.out 
-	./args.out xde 123
+	./args.out xde x23
+
+compare:
+	gcc compare_args.s -no-pie -g -o compare_args.out 
+	./compare_args.out xde x23

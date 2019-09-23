@@ -1,7 +1,7 @@
 .text
-    file_name: .asciz "text"
+    file_name: .asciz "text2"
     int_output_format: .string "File size %d \n"
-    string_output_format: .string "%s\n"
+    string_output_format: .string "\n%s\n"
     true_string: .asciz "true"
     false_string: .asciz "false"
     number_text: .asciz "2"

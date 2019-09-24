@@ -104,6 +104,7 @@ main:
 loop:
     jmp compare_line
 after_compare_line:
+    
 
 
     movq %rbp, %rsp
@@ -117,6 +118,8 @@ end:
 compare_line:
     jmp check_eof
 after_check_eof:
+    jmp check__nl
+after_check_nl:
     movb (%r13), %al
     movb (%r14), %bl
 
@@ -128,6 +131,9 @@ after_check_eof:
     cmpb  %al,  %bl
     je compare_line
     jne print_diff_eof ##TO CHANGE
+
+    call go_to_end_of_line_file1
+    call go_to_end_of_line_file2
 
     jmp after_compare_line
 
@@ -145,8 +151,65 @@ check_eof_file2_also:
     jne print_diff_eof
 
 
-print_diff:
+check__nl:
+    cmpb $10, (%r13)
+    je check_eof_file2_also
+    jne check_eof_file2_only
+check_nl_file2_only:
+    cmpb $10, (%r14)
+    jne after_check_nl
+    #call print_diff
+    incq %r14
+    incq %r9
+    movq %r9, %r12
+    call go_to_end_of_line_file1
+    jmp compare_line
+check_nl_file2_also:
+    cmpb $10, (%r14)
+    jne nl_only_file1
+    incq %r13
+    incq %r14
+    incq %r8
+    incq %r9
+    movq %r8, %r11
+    movq %r9, %r12
+    jmp compare_line
+nl_only_file1:
+    #call print_diff
+    incq %r13
+    incq %r8
+    movq %r8, %r11
+    call go_to_end_of_line_file2
+    jmp after_check_nl
 
+
+print_diff:
+    movq %r11, (current_possition_file1)
+    movq %r12, (current_possition_file2)
+
+    movq $printf_string_format, %rdi
+    movq $file1, %rsi
+    call printf
+    movq $printf_string_format_nl, %rdi
+    #movq %r13rsi, %
+    movq $file1_buffer, %rsi
+    movq (current_possition_file1), %r11
+    addq %r11, %rsi
+    call printf
+
+    movq $printf_string_format_nl, %rdi
+    movq $line, %rsi
+    call printf
+
+    movq $printf_string_format, %rdi
+    movq $file2, %rsi
+    call printf
+    movq $printf_string_format_nl, %rdi
+    movq $file2_buffer, %rsi
+    movq (current_possition_file1), %r12
+    addq %r12, %rsi
+    call printf
+    ret
 
 print_diff_eof:
     movq %r11, (current_possition_file1)
@@ -156,7 +219,7 @@ print_diff_eof:
     movq $file1, %rsi
     call printf
     movq $printf_string_format_nl, %rdi
-    #movq %r13, %rsi
+    #movq %r13rsi, %
     movq $file1_buffer, %rsi
     movq (current_possition_file1), %r11
     addq %r11, %rsi
@@ -177,8 +240,23 @@ print_diff_eof:
     jmp end
 
 go_to_end_of_line_file1:
+    incq %r13
+    incq %r8
+    cmpb $10, (%r13)
+    jne go_to_end_of_line_file1
+    incq %r13
+    incq %r8
+    movq %r8, %r11
+    ret
 go_to_end_of_line_file2:
-
+    incq %r14
+    incq %r9
+    cmpb $10, (%r14)
+    jne go_to_end_of_line_file2
+    incq %r14
+    incq %r9
+    movq %r9, %r12
+    ret
 
 
 print_line_file1:

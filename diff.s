@@ -47,36 +47,36 @@
 
 .global main
 main:
-    pushq %rbp
-    movq %rsp, %rbp
+######################## INPUT PART START ########################
+    pushq %rbp      # CREATE NEW STACK FRAME
+    movq %rsp, %rbp # CREATE NEW STACK FRAME
 
     #copy address of the first one to the variable
 	movq	%rsi, %rax
     addq    $8, %rax  #first argument is actually the second one because the first one is executable name
 	movq	(%rax), %rax
-	movq	%rax, (file1_name_address)
+	movq	%rax, (file1_name_address) #save firsts's argument address to a variable
     #copy address of the second one to the variable
     movq	%rsi, %rax
-    addq    $16, %rax
+    addq    $16, %rax #address of the second argument
     movq	(%rax), %rax
-	movq	%rax, (file2_name_address)
+	movq	%rax, (file2_name_address) #save second's argument address to a variable
 
     #open and save to memory first file
     movq $sys_open, %rax
-    movq (file1_name_address), %rdi
-    movq $0, %rsi
-    movq $0777, %rdx
+    movq (file1_name_address), %rdi #address of first file
+    movq $0, %rsi #open mode : read only
     syscall 
 
-    movq %rax, (fd)
+    movq %rax, (fd) #save file descriptor to memory
 
-    movq $sys_read, %rax
+    movq $sys_read, %rax #read file from file descriptor and save it to the memory
     movq (fd), %rdi
-    movq $file1_buffer, %rsi
-    movq $1024, %rdx
+    movq $file1_buffer, %rsi #file1_buffer is where we will store our file
+    movq $1024, %rdx #we set max. file size to 1KB
     syscall 
     
-    movq $sys_close, %rax
+    movq $sys_close, %rax #close the file
     movq $fd, %rdi
     syscall 
     ####################################
@@ -84,24 +84,25 @@ main:
 
     #open and save to memory second file
     movq $sys_open, %rax
-    movq (file2_name_address), %rdi
-    movq $0, %rsi
-    movq $0777, %rdx
+    movq (file2_name_address), %rdi #file adress to second argument
+    movq $0, %rsi #open mode : read only
     syscall 
 
-    movq %rax, (fd)
+    movq %rax, (fd) #save file descriptor to memory
 
-    movq $sys_read, %rax
+    movq $sys_read, %rax #read file from file descriptor and save it to the memory
     movq (fd), %rdi
-    movq $file2_buffer, %rsi
-    movq $1024, %rdx
+    movq $file2_buffer, %rsi #file2_buffer is where we will store our file
+    movq $1024, %rdx #we set max. file size to 1KB
     syscall 
     
-    movq $sys_close, %rax
+    movq $sys_close, %rax #close the file
     movq $fd, %rdi
     syscall 
     ####################################
+######################## INPUT PART END ########################
 
+    #we need to use both registers and memory, because we need to make calculations on these address and in meanwhile they will be used to print stuff
     movq $file1_buffer, %r13 #r13 registry will store address to currently compared char of file1
     movq $file2_buffer, %r14 #r14 registry will store address to currently compared char of file2
     movq $file1_buffer, (current_character_address_file1)
@@ -118,99 +119,100 @@ main:
     movq $file1_buffer, (current_line_address_file1)
     movq $file2_buffer, (current_line_address_file2)
 
-    
 
-loop:
-    jmp compare_line
-after_compare_line:
+
+    jmp compare_files #jump to our main loop
+after_compare_files:
     
-    movq %rbp, %rsp
-    popq %rbp
+    movq %rbp, %rsp #
+    popq %rbp       # RESTORE OLD STACK FRAME
 end:
-    movq $sys_exit, %rax
+    movq $sys_exit, %rax #CALL SYSTEM EXIT
     movq $0, %rdi
     syscall
 
 
 
-
-compare_line:
-    jmp check_eof
-after_check_eof:
-    jmp check_nl
+######################## MAIN LOOP START ########################
+compare_files:
+    jmp check_eof #check if one of the files has already ended
+after_check_no_eof:
+    jmp check_nl #check if one of the files goes into new line
 after_check_no_nl:
-    #call print_diff #debug purposes
-    movb (%r13), %al
-    movb (%r14), %bl
+    movb (%r13), %al #copy one character to the one byte register 
+    movb (%r14), %bl #copy one character to the one byte register
 
-    incq %r13
-    incq %r14
+    incq %r13 #go to the next character
+    incq %r14 #go to the next character
 
-    incq %r8
-    incq %r9
+    incq %r8 #increase line length
+    incq %r9 #increase line length
 
-    cmpb  %al,  %bl
-    je compare_line
+    cmpb  %al, %bl #compare two charachters 
+    je compare_files #if equal then iterate the loop -> compare next character
 
-
+    # characters not equal -> iterate to end of the lines in both files
     call go_to_end_of_line_file1
     call go_to_end_of_line_file2
+after_check_nl: #we continue here if there is new line in one of the files
+    decq %r8 #decrease the line length so we dont print unnecessary \n
+    decq %r9 #decrease the line length so we dont print unnecessary \n
+    call print_diff #print the different lines
 
-    
-after_check_nl:
-    decq %r8
-    decq %r9
-    call print_diff
-
-    #start new line
+    #start new line, restore the registers
     movq $1, %r8
     movq $1, %r9
     movq %r13, %r11
     movq %r14, %r12
 
-    jmp compare_line
+    jmp compare_files #if the differences handled, let's go to the next one, next loop iteration
+######################## MAIN LOOP END ########################
 
+
+######################## SPECIAL EVENT CHECKERS START ########################
 check_eof:
-    cmpb $0, (%r13)
+    cmpb $0, (%r13) #check if current character of file1 is null
     je check_eof_file2_also
     jne check_eof_file2_only
 check_eof_file2_only:
-    cmpb $0, (%r14)
-    jne after_check_eof
-    je print_eof
+    cmpb $0, (%r14) #check if current character of file2 is null
+    jne after_check_no_eof #both files didn't end
+    je print_eof #only second file ended -> print the differences
 check_eof_file2_also:
-    cmpb $0, (%r14)
-    je end
-    jne print_eof
+    cmpb $0, (%r14) #check if current character of file2 is null
+    je end #if both of the files ended -> end the program
+    jne print_eof #only first file ended -> print the differences
 
 
 check_nl:
-    cmpb $10, (%r13)
+    cmpb $10, (%r13) #check if current character of file1 is \n
     je check_nl_file2_also
     jne check_nl_file2_only
 check_nl_file2_only:
-    cmpb $10, (%r14)
+    cmpb $10, (%r14) #check if current character of file2 is \n
     jne after_check_no_nl
     call go_to_end_of_line_file1
-    incq %r14
+    incq %r14 #align strings to the first character after \n
     jmp after_check_nl
 check_nl_file2_also:
-    cmpb $10, (%r14)
+    cmpb $10, (%r14) #check if current character of file2 is \n
     je both_nl
     call go_to_end_of_line_file2
-    incq %r13
+    incq %r13 #align strings to the first character after \n
     jmp after_check_nl
-both_nl:
+both_nl: #both lines ended, just go to the next one
     incq %r13
     incq %r14
-    movq $1, %r8
+    movq $1, %r8 
     movq $1, %r9
     movq %r13, %r11
     movq %r14, %r12
-    jmp compare_line
+    jmp compare_files
+######################## SPECIAL EVENT CHECKERS END ########################
 
 
-
+######################## PRINTERS START ########################
+#print differences in case that one file ended before the second one
 print_eof:
     #save current state from registers to variables
     movq %r11, (current_line_address_file1)
@@ -249,6 +251,9 @@ print_eof:
     movq %r12, %rsi
     call printf
     jmp end
+
+
+#print differences in case there is \n  before there is in the second one
 print_diff:
     #save current state from registers to variables
     movq %r11, (current_line_address_file1)
@@ -307,9 +312,10 @@ print_diff:
     movq (current_character_address_file1), %r13
     movq (current_character_address_file2), %r14
     ret
+######################## PRINTERS END ########################
 
-
-go_to_end_of_line_file1:
+######################## ITERATORS START ########################
+go_to_end_of_line_file1: #iterate over the current line of the first file to the next one
     cmpb $10, (%r13)
     je after_go_to_line1
 
@@ -327,7 +333,9 @@ after_go_to_line1:
 
 
 
-go_to_end_of_line_file2:
+
+
+go_to_end_of_line_file2: #iterate over the current line of the second file to the next one
     cmpb $10, (%r14)
     je after_go_to_line2
 
@@ -342,3 +350,4 @@ go_to_end_of_line_file2:
 after_go_to_line2:
     incq %r14
     ret
+######################## ITERATORS END ########################

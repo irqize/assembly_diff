@@ -1,8 +1,8 @@
 .text   #predefined strings
     line: .asciz "\n---\n"
-    file1: .asciz "< "
+    file1: .asciz "\n< "
     file2: .asciz "> "
-    newline2: .asciz "\n\n"
+    newline2: .asciz "\n"
     string_output: .asciz "%s"
     string_output_nl: .asciz "%s\n"
 
@@ -268,7 +268,7 @@ print_diff:
     movq $sys_write, %rax
     movq $1, %rdi
     movq $file1, %rsi
-    movq $2, %rdx
+    movq $3, %rdx
     syscall
     # write line1
     movq (length_line_file1), %r8

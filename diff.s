@@ -3,6 +3,9 @@
     file1: .asciz "< "
     file2: .asciz "> "
     newline2: .asciz "\n\n"
+    string_output: .asciz "%s"
+    string_output_nl: .asciz "%s\n"
+
 
 
 #reserved space for file descriptor
@@ -174,13 +177,11 @@ check_eof:
 check_eof_file2_only:
     cmpb $0, (%r14)
     jne after_check_eof
-    call print_diff
-    jmp end
+    je print_eof
 check_eof_file2_also:
     cmpb $0, (%r14)
     je end
-    call print_diff
-    jmp end
+    jne print_eof
 
 
 check_nl:
@@ -210,7 +211,44 @@ both_nl:
 
 
 
+print_eof:
+    #save current state from registers to variables
+    movq %r11, (current_line_address_file1)
+    movq %r12, (current_line_address_file2)
 
+    movq %r8, (length_line_file1)
+    movq %r9, (length_line_file2)
+
+    movq %r13, (current_character_address_file1)
+    movq %r14, (current_character_address_file2)
+    # write "> "
+    xor %rsi, %rsi
+    movq $string_output, %rdi
+    movq $file1, %rsi
+    call printf
+    # write file1
+    movq (current_line_address_file1), %r11
+    xor %rsi, %rsi
+    movq $string_output, %rdi
+    movq %r11, %rsi
+    call printf
+    # write "---"
+    xor %rsi, %rsi
+    movq $string_output, %rdi
+    movq $line, %rsi
+    call printf
+    # write "< "
+    xor %rsi, %rsi
+    movq $string_output, %rdi
+    movq $file2, %rsi
+    call printf
+    # write file2
+    movq (current_line_address_file2), %r12
+    xor %rsi, %rsi
+    movq $string_output_nl, %rdi
+    movq %r12, %rsi
+    call printf
+    jmp end
 print_diff:
     #save current state from registers to variables
     movq %r11, (current_line_address_file1)
@@ -269,6 +307,7 @@ print_diff:
     movq (current_character_address_file1), %r13
     movq (current_character_address_file2), %r14
     ret
+
 
 go_to_end_of_line_file1:
     cmpb $10, (%r13)

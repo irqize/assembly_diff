@@ -358,14 +358,11 @@ after_go_to_line2:
 optional_arguments:
     movq $1, %r8
     movq (%rsi, %r8, 8), %rbx
-    cmpb $105, 1(%rbx)
-    je set_arg_i
+    cmpq $105, 1(%rbx)
+    je seti
     ret
 ######################## OPTIONAL ARGS END ########################
 
-set_arg_i:
+seti:
     movq $1, (arg1)
-    ret
-
-set_arg_b:
     ret

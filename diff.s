@@ -25,8 +25,8 @@
 .lcomm current_line_address_file1, 8
 .lcomm current_line_address_file2, 8
 
-.lcomm arg1, 16
-.lcomm arg2, 8
+.lcomm arg1, 1
+.lcomm arg2, 1
 
 .data
     start_of_current_line_file1: .quad 0
@@ -53,7 +53,6 @@ main:
     jg optional_arguments # adjust diff detection for -i, -B args
 
     # copy address of the first one to the variable
-continue:
 	movq	%rsi, %rax
     addq    $8, %rax  # first argument is actually the second one because the first one is executable name
 	movq	(%rax), %rax
@@ -148,10 +147,15 @@ after_check_no_nl:
     incq %r8 # increase line length
     incq %r9 # increase line length
 
+    cmpb $1, (arg1)
+    je make_uppercase
+
+resume_comparing:
+ 
     cmpb  %al, %bl # compare two charachters 
     je compare_files # if equal then iterate the loop -> compare next character
 
-
+    
 
     # characters not equal -> iterate to end of the lines in both files
     call go_to_end_of_line_file1
@@ -360,12 +364,40 @@ optional_arguments:
     movq (%rsi, %r8, 8), %rbx
     cmpb $105, 1(%rbx)
     je set_arg_i
+
+    incq %r8
+    incq %r8
+
+    movq (%rsi, %r8, 8), %rbx
+    cmpb $66, 1(%rbx)
+    je set_arg_b
     ret
 ######################## OPTIONAL ARGS END ########################
 
 set_arg_i:
-    movq $1, (arg1)
+    movb $1, (arg1) # set global variable – ignore case
     ret
 
 set_arg_b:
+    movb $1, (arg2) # set global variable – ignore blank lines
+    ret
+
+make_uppercase:
+    cmpb  $96, %al # if greater than small a
+    jg al_to_capital # check if smaller than small z
+continue_with_bl:
+    cmpb  $96, %bl # if greater than small a
+    jg bl_to_capital # check if smaller than small z
+    ret
+
+al_to_capital:
+    cmpb $122, %al # if greater than small z
+    jg continue_with_bl # not a letter
+    subb $32, %al  # else turn into a capital letter
+    ret
+
+bl_to_capital:
+    cmpb $122, %bl # if greater than small z
+    jg resume_comparing # not a letter
+    subb $32, %bl # else turn into a capital letter
     ret

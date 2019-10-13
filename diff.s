@@ -7,11 +7,11 @@
     string_output_nl: .asciz "%s\n"
 
 
+
 # reserved space for file descriptor
 .lcomm fd, 1
 .lcomm file1_name_address, 8
 .lcomm file2_name_address, 8
-
 # reserved space for files contents
 .lcomm file1_buffer, 1024
 .lcomm file2_buffer, 1024
@@ -25,8 +25,7 @@
 .lcomm current_line_address_file1, 8
 .lcomm current_line_address_file2, 8
 
-.lcomm arg1, 16
-.lcomm arg2, 8
+
 
 .data
     start_of_current_line_file1: .quad 0
@@ -35,6 +34,9 @@
     current_possition_file2: .quad 0
     address_file1: .quad 0
     address_file2: .quad 0
+
+
+
 
 # linux syscalls
 .equ sys_read, 0
@@ -49,11 +51,7 @@ main:
     pushq %rbp      # CREATE NEW STACK FRAME
     movq %rsp, %rbp # CREATE NEW STACK FRAME
 
-    cmpq $3, %rdi  # If more than three arguments
-    jg optional_arguments # adjust diff detection for -i, -B args
-
     # copy address of the first one to the variable
-continue:
 	movq	%rsi, %rax
     addq    $8, %rax  # first argument is actually the second one because the first one is executable name
 	movq	(%rax), %rax
@@ -121,6 +119,7 @@ continue:
     movq $file2_buffer, (current_line_address_file2)
 
 
+
     jmp compare_files # jump to our main loop
 after_compare_files:
     
@@ -150,8 +149,6 @@ after_check_no_nl:
 
     cmpb  %al, %bl # compare two charachters 
     je compare_files # if equal then iterate the loop -> compare next character
-
-
 
     # characters not equal -> iterate to end of the lines in both files
     call go_to_end_of_line_file1
@@ -353,16 +350,3 @@ after_go_to_line2:
     incq %r14
     ret
 ######################## ITERATORS END ########################
-
-######################## OPTIONAL ARGS START ########################
-optional_arguments:
-    movq $1, %r8
-    movq (%rsi, %r8, 8), %rbx
-    cmpq $105, 1(%rbx)
-    je seti
-    ret
-######################## OPTIONAL ARGS END ########################
-
-seti:
-    movq $1, (arg1)
-    ret

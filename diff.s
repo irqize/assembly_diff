@@ -51,7 +51,7 @@ main:
 
     cmpq $3, %rdi  # If more than three arguments
     jg optional_arguments # adjust diff detection for -i, -B args
-
+continue_main:
     # copy address of the first one to the variable
 	movq	%rsi, %rax
     addq    $8, %rax  # first argument is actually the second one because the first one is executable name
@@ -337,10 +337,6 @@ after_go_to_line1:
     incq %r13
     ret
 
-
-
-
-
 go_to_end_of_line_file2: # iterate over the current line of the second file to the next one
     cmpb $10, (%r14)
     je after_go_to_line2
@@ -360,44 +356,47 @@ after_go_to_line2:
 
 ######################## OPTIONAL ARGS START ########################
 optional_arguments:
-    movq $1, %r8
-    movq (%rsi, %r8, 8), %rbx
-    cmpb $105, 1(%rbx)
-    je set_arg_i
 
-    incq %r8
-    incq %r8
+    movq    $1, %r8
+    movq    (%rsi, %r8, 8), %rbx
+    cmpb    $105, 1(%rbx)
+    je  set_arg_i
+res1:
+    incq    %r8
+    incq    %r8
 
-    movq (%rsi, %r8, 8), %rbx
-    cmpb $66, 1(%rbx)
-    je set_arg_b
-    ret
+    movq    (%rsi, %r8, 8), %rbx
+    cmpb    $66, 1(%rbx)
+    je  set_arg_b
+    jmp continue_main
 ######################## OPTIONAL ARGS END ########################
 
 set_arg_i:
-    movb $1, (arg1) # set global variable – ignore case
-    ret
+    movb    $1, (arg1) # set global variable – ignore case
+    addq    $8, %rax # filename 1 arg further
+    jmp res1
 
 set_arg_b:
-    movb $1, (arg2) # set global variable – ignore blank lines
-    ret
+    movb    $1, (arg2) # set global variable – ignore blank lines
+    addq    $8, %rax # filename 1 arg further
+    jmp continue_main
 
 make_uppercase:
-    cmpb  $96, %al # if greater than small a
-    jg al_to_capital # check if smaller than small z
+    cmpb    $96, %al # if greater than small a
+    jg  al_to_capital # check if smaller than small z
 continue_with_bl:
-    cmpb  $96, %bl # if greater than small a
-    jg bl_to_capital # check if smaller than small z
-    ret
+    cmpb    $96, %bl # if greater than small a
+    jg  bl_to_capital # check if smaller than small z
+    jmp resume_comparing
 
 al_to_capital:
-    cmpb $122, %al # if greater than small z
-    jg continue_with_bl # not a letter
-    subb $32, %al  # else turn into a capital letter
-    ret
+    cmpb    $122, %al # if greater than small z
+    jg  continue_with_bl # not a letter
+    subb    $32, %al  # else turn into a capital letter
+    jmp continue_with_bl
 
 bl_to_capital:
-    cmpb $122, %bl # if greater than small z
-    jg resume_comparing # not a letter
-    subb $32, %bl # else turn into a capital letter
-    ret
+    cmpb    $122, %bl # if greater than small z
+    jg  resume_comparing # not a letter
+    subb    $32, %bl # else turn into a capital letter
+    jmp resume_comparing

@@ -356,20 +356,20 @@ after_go_to_line2:
 
 ######################## OPTIONAL ARGS START ########################
 optional_arguments:
-
-    movq    $1, %r8
-    movq    (%rsi, %r8, 8), %rbx
-    cmpb    $105, 1(%rbx)
+    addq    $8, %rsi
+    cmpb    $105, 1(%rsi)
     je  set_arg_i
 res1:
-    incq    %r8
-    incq    %r8
-
-    movq    (%rsi, %r8, 8), %rbx
-    cmpb    $66, 1(%rbx)
+    cmpq    %rdi, 4
+    je  one_more_argument
+cont:
+    cmpb    $66, 1(%rsi)
     je  set_arg_b
     jmp continue_main
 ######################## OPTIONAL ARGS END ########################
+one_more_argument:
+    addq    $8, %rsi
+    jmp cont
 
 set_arg_i:
     movb    $1, (arg1) # set global variable – ignore case

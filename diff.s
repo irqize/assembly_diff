@@ -54,12 +54,12 @@ main:
 continue_main:
     # copy address of the first one to the variable
 	movq	%rsi, %rax
-	addq	$8, %rax  # first argument is actually the second one because the first one is executable name
+	#addq	$8, %rax  # first argument is actually the second one because the first one is executable name
 	movq	(%rax), %rax
-	movq	%rax, (file1_name_address) # save firsts's argument address to a variable
+	movq	%rax, (file1_name_address) # save first argument's address to a variable
     # copy address of the second one to the variable
 	movq	%rsi, %rax
-	addq	$16, %rax # address of the second argument
+	addq	$8, %rax # address of the second argument
 	movq	(%rax), %rax
 	movq	%rax, (file2_name_address) # save second's argument address to a variable
 
@@ -355,28 +355,45 @@ after_go_to_line2:
 ######################## ITERATORS END ########################
 
 ######################## OPTIONAL ARGS START ########################
-optional_arguments:
-	addq	$8, %rsi
-	cmpb	$105,   1(%rsi)
+optional_arguments: # first argument
+    xorq    %r15, %r15 # to keep track of how many args we set
+	addq	$8, %rsi #first arg is the path
+	movq    (%rsi), %rax
+	cmpb	$105,   1(%rax) # is it -i?
 	je	set_arg_i
+	cmpb	$66,    1(%rax) # is it -B?
+    je	set_arg_b
 res1:
-	cmpq	$4, %rdi
-    jne
-	cmpb	$66, 1(%rsi)
-	je	set_arg_b
+	cmpq	$4, %rdi # if less than 4 args
+	jne continue_main # then there are no further arguments to check
+	addq	$8, %rsi # next argument
+	movq    (%rsi), %rax
+    cmpb	$105,   1(%rax) # is it -i?
+    je	set_arg_i
+    cmpb	$66,    1(%rax) # is it -B?
+    je	set_arg_b
 	jmp	continue_main
-######################## OPTIONAL ARGS END ########################
-
 
 set_arg_i:
 	movb	$1, (arg1) # set global variable – ignore case
-	addq	$8, %rax # filename 1 arg further
-	jmp	res1
+	#addq	$8, %rsi # filename 1 arg further
+	cmpq    $0, %r15 # if this is the first time we're setting an argument
+	je res1
+	cmpq    $0, %r15 # if this is not the first time we're setting an argument
+    jne continue_main
 
 set_arg_b:
 	movb	$1, (arg2) # set global variable – ignore blank lines
-	addq	$8, %rax # filename 1 arg further
-	jmp	continue_main
+	#addq	$8, %rsi # filename 1 arg further
+	cmpq    $0, %r15 # if this is the first time we're setting an argument
+    je res1
+    cmpq    $0, %r15 # if this is not the first time we're setting an argument
+    jne continue_main
+
+
+######################## OPTIONAL ARGS END ########################
+
+######################## CASE IGNORE START ########################
 
 make_uppercase:
 	cmpb	$96, %al # if greater than small a
@@ -397,3 +414,5 @@ bl_to_capital:
 	jg	resume_comparing # not a letter
 	subb	$32, %bl # else turn into a capital letter
 	jmp	resume_comparing
+
+######################## CASE IGNORE END ########################

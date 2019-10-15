@@ -25,8 +25,8 @@
 .lcomm current_line_address_file1, 8
 .lcomm current_line_address_file2, 8
 
-.lcomm arg1, 1
-.lcomm arg2, 1
+.lcomm flag_i, 1
+.lcomm flag_B, 1
 
 # linux syscalls
 .equ sys_read, 0
@@ -139,7 +139,7 @@ after_check_no_nl:
 	incq	%r8 # increase line length
 	incq	%r9 # increase line length
 
-	cmpb	$1, (arg1)
+	cmpb	$1, (flag_i)
 	je	make_uppercase
 
 resume_comparing:
@@ -198,7 +198,7 @@ check_nl_file2_also:
 	call	go_to_end_of_line_file2
 	incq	%r13  # Align strings to the first character after \n
 
-	cmpb	$1, (arg2) # If we don't ignore blank lines:
+	cmpb	$1, (flag_B) # If we don't ignore blank lines:
 	jne	after_check_nl # Jump to eventually print the differences
 
 	subq	$2, %r14   # I wrote this block of code and everything suddenly started to work
@@ -379,14 +379,14 @@ res2:
 	jmp	continue_main
 
 set_arg_i:
-	movb	$1, (arg1) # set global variable – ignore case
+	movb	$1, (flag_i) # set global variable – ignore case
 	cmpq	$0, %r15 # if this is the first time we're setting an argument
 	je	res1
 	cmpq	$0, %r15 # if this is not the first time we're setting an argument
 	jne	continue_main
 
 set_arg_b:
-	movb	$1, (arg2) # set global variable – ignore blank lines
+	movb	$1, (flag_B) # set global variable – ignore blank lines
 	cmpq	$0, %r15 # if this is the first time we're setting an argument
 	je	res1
 	cmpq	$0, %r15 # if this is not the first time we're setting an argument

@@ -67,7 +67,7 @@ continue_main:
 	movq	$sys_open, %rax
 	movq	(file1_name_address), %rdi # address of first file
 	movq	$0, %rsi # open mode : read only
-	syscall	
+	syscall
 
 	movq	%rax, (fd) # save file descriptor to memory
 
@@ -75,18 +75,18 @@ continue_main:
 	movq	(fd), %rdi
 	movq	$file1_buffer, %rsi # file1_buffer is where we will store our file
 	movq	$1024, %rdx # we set max. file size to 1KB
-	syscall	
-    
+	syscall
+
 	movq	$sys_close, %rax # close the file
 	movq	$fd, %rdi
-	syscall	
+	syscall
     ####################################
-     
+
     # open and save to memory second file
 	movq	$sys_open, %rax
 	movq	(file2_name_address), %rdi # file adress to second argument
 	movq	$0, %rsi # open mode : read only
-	syscall	
+	syscall
 
 	movq	%rax, (fd) # save file descriptor to memory
 
@@ -94,11 +94,11 @@ continue_main:
 	movq	(fd), %rdi
 	movq	$file2_buffer, %rsi # file2_buffer is where we will store our file
 	movq	$1024, %rdx # we set max. file size to 1KB
-	syscall	
-    
+	syscall
+
 	movq	$sys_close, %rax # close the file
 	movq	$fd, %rdi
-	syscall	
+	syscall
     ####################################
 ######################## INPUT PART END ########################
 
@@ -122,7 +122,7 @@ continue_main:
 
 	jmp	compare_files # jump to our main loop
 after_compare_files:
-    
+
 	movq	%rbp, %rsp #
 	popq	%rbp       # RESTORE OLD STACK FRAME
 end:
@@ -138,7 +138,7 @@ compare_files:
 after_check_no_eof:
 	jmp	check_nl # check if one of the files goes into new line
 after_check_no_nl:
-	movb	(%r13), %al # copy one character to the one byte register 
+	movb	(%r13), %al # copy one character to the one byte register
 	movb	(%r14), %bl # copy one character to the one byte register
 
 	incq	%r13 # go to the next character
@@ -151,11 +151,11 @@ after_check_no_nl:
 	je	make_uppercase
 
 resume_comparing:
- 
-	cmpb	%al, %bl # compare two charachters 
+
+	cmpb	%al, %bl # compare two charachters
 	je	compare_files # if equal then iterate the loop -> compare next character
 
-    
+
 
     # characters not equal -> iterate to end of the lines in both files
 	call	go_to_end_of_line_file1
@@ -198,18 +198,29 @@ check_nl_file2_only:
 	cmpb	$10, (%r14) # check if current character of file2 is \n
 	jne	after_check_no_nl
 	call	go_to_end_of_line_file1
-	incq	%r14 # align strings to the first character after \n
+	incq	%r14	#	align strings to the first character after \n
 	jmp	after_check_nl
 check_nl_file2_also:
-	cmpb	$10, (%r14) # check if current character of file2 is \n
+	cmpb	$10, (%r14)	#	check if current character of file2 is \n
 	je	both_nl
 	call	go_to_end_of_line_file2
-	incq	%r13 # align strings to the first character after \n
-	jmp	after_check_nl
+	incq	%r13  # Align strings to the first character after \n
+
+	cmpb	$1, (arg2) # If we don't ignore blank lines:
+	jne	after_check_nl # Jump to eventually print the differences
+
+	subq	$2, %r14   # I wrote this block of code and everything suddenly started to work
+	movq	$1, %r8    # Set line iterator to beginning of the line, first file
+	movq	$1, %r9    # Set line iterator to beginning of the line, second file
+	movq	%r13, %r11 # Skip blank line, first file
+
+
+	jmp	compare_files
+
 both_nl: # both lines ended, just go to the next one
 	incq	%r13
 	incq	%r14
-	movq	$1, %r8 
+	movq	$1, %r8
 	movq	$1, %r9
 	movq	%r13, %r11
 	movq	%r14, %r12
@@ -356,39 +367,38 @@ after_go_to_line2:
 
 ######################## OPTIONAL ARGS START ########################
 optional_arguments: # first argument
-    xorq    %r15, %r15 # to keep track of how many args we set
+	xorq	%r15, %r15 # to keep track of how many args we set
 	addq	$8, %rsi #first arg is the path
-	movq    (%rsi), %rax
+	movq	(%rsi), %rax
 	cmpb	$105,   1(%rax) # is it -i?
 	je	set_arg_i
 	cmpb	$66,    1(%rax) # is it -B?
-    je	set_arg_b
+	je	set_arg_b
 res1:
-	cmpq	$4, %rdi # if less than 4 args
-	jne continue_main # then there are no further arguments to check
+	cmpq	$5, %rdi # if less than 4 args
+	jne	continue_main # then there are no further arguments to check
 	addq	$8, %rsi # next argument
-	movq    (%rsi), %rax
-    cmpb	$105,   1(%rax) # is it -i?
-    je	set_arg_i
-    cmpb	$66,    1(%rax) # is it -B?
-    je	set_arg_b
+	movq	(%rsi), %rax
+res2:
+	cmpb	$105,   1(%rax) # is it -i?
+	je	set_arg_i
+	cmpb	$66,    1(%rax) # is it -B?
+	je	set_arg_b
 	jmp	continue_main
 
 set_arg_i:
 	movb	$1, (arg1) # set global variable – ignore case
-	#addq	$8, %rsi # filename 1 arg further
-	cmpq    $0, %r15 # if this is the first time we're setting an argument
-	je res1
-	cmpq    $0, %r15 # if this is not the first time we're setting an argument
-    jne continue_main
+	cmpq	$0, %r15 # if this is the first time we're setting an argument
+	je	res1
+	cmpq	$0, %r15 # if this is not the first time we're setting an argument
+	jne	continue_main
 
 set_arg_b:
 	movb	$1, (arg2) # set global variable – ignore blank lines
-	#addq	$8, %rsi # filename 1 arg further
-	cmpq    $0, %r15 # if this is the first time we're setting an argument
-    je res1
-    cmpq    $0, %r15 # if this is not the first time we're setting an argument
-    jne continue_main
+	cmpq	$0, %r15 # if this is the first time we're setting an argument
+	je	res1
+	cmpq	$0, %r15 # if this is not the first time we're setting an argument
+	jne	continue_main
 
 
 ######################## OPTIONAL ARGS END ########################

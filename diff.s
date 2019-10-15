@@ -28,14 +28,6 @@
 .lcomm arg1, 1
 .lcomm arg2, 1
 
-.data
-    start_of_current_line_file1: .quad 0
-    start_of_current_line_file2: .quad 0
-    current_possition_file1: .quad 0
-    current_possition_file2: .quad 0
-    address_file1: .quad 0
-    address_file2: .quad 0
-
 # linux syscalls
 .equ sys_read, 0
 .equ sys_write, 1

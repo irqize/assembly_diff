@@ -1,4 +1,4 @@
-################ Authors' netIDs: npkowalewski, gkulikovskis
+################ Authors' netIDs: pkowalewski, gkulikovskis
 .text   # predefined strings
     line: .asciz "\n---\n"
     file1: .asciz "\n< "

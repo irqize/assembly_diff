@@ -11,7 +11,6 @@
 .lcomm fd, 1
 .lcomm file1_name_address, 8
 .lcomm file2_name_address, 8
-
 # reserved space for files contents
 .lcomm file1_buffer, 1024
 .lcomm file2_buffer, 1024
@@ -27,6 +26,7 @@
 
 .lcomm flag_i, 1
 .lcomm flag_B, 1
+
 
 # linux syscalls
 .equ sys_read, 0
@@ -44,6 +44,7 @@ main:
 	cmpq	$3, %rdi  # If more than three arguments
 	jg	optional_arguments # adjust diff detection for -i, -B args
 continue_main:
+
     # copy address of the first one to the variable
 	movq	%rsi, %rax
 	#addq	$8, %rax  # first argument is actually the second one because the first one is executable name
@@ -113,6 +114,7 @@ continue_main:
 
 
 	jmp	compare_files # jump to our main loop
+
 after_compare_files:
 
 	movq	%rbp, %rsp #
@@ -146,8 +148,6 @@ resume_comparing:
 
 	cmpb	%al, %bl # compare two charachters
 	je	compare_files # if equal then iterate the loop -> compare next character
-
-
 
     # characters not equal -> iterate to end of the lines in both files
 	call	go_to_end_of_line_file1
@@ -416,5 +416,4 @@ bl_to_capital:
 	jg	resume_comparing # not a letter
 	subb	$32, %bl # else turn into a capital letter
 	jmp	resume_comparing
-
 ######################## CASE IGNORE END ########################

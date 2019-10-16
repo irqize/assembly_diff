@@ -1,3 +1,4 @@
+################ Authors' netIDs: npkowalewski, gkulikovskis
 .text   # predefined strings
     line: .asciz "\n---\n"
     file1: .asciz "\n< "
@@ -391,7 +392,6 @@ set_arg_b:
 	je	res1
 	cmpq	$0, %r15 # if this is not the first time we're setting an argument
 	jne	continue_main
-
 
 ######################## OPTIONAL ARGS END ########################
 

@@ -42,6 +42,7 @@ main:
 	pushq	%rbp      # CREATE NEW STACK FRAME
 	movq	%rsp, %rbp # CREATE NEW STACK FRAME
 
+    addq	$8, %rsi #first arg is the path
 	cmpq	$3, %rdi  # If more than three arguments
 	jg	optional_arguments # adjust diff detection for -i, -B args
 continue_main:
@@ -361,7 +362,6 @@ after_go_to_line2:
 ######################## OPTIONAL ARGS START ########################
 optional_arguments: # first argument
 	xorq	%r15, %r15 # to keep track of how many args we set
-	addq	$8, %rsi #first arg is the path
 	movq	(%rsi), %rax
 	cmpb	$105,   1(%rax) # is it -i?
 	je	set_arg_i

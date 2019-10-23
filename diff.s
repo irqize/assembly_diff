@@ -369,8 +369,8 @@ optional_arguments: # first argument
 	je	set_arg_b
 res1:
 	cmpq	$5, %rdi # if less than 4 args
-	jne	continue_main # then there are no further arguments to check
 	addq	$8, %rsi # next argument
+	jne	continue_main # then there are no further arguments to check
 	movq	(%rsi), %rax
 res2:
 	cmpb	$105,   1(%rax) # is it -i?
